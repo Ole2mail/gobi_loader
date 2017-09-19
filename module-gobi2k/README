@@ -1,0 +1,46 @@
+how to build qcserial and usb-wwan modules, based on manual from here:
+
+https://stackoverflow.com/questions/8744087/how-to-recompile-just-a-single-kernel-module/44204152#44204152
+
+    1. make distclean if you haven't just cloned a new source but used to build 
+other modules before
+    2. create new folder somewhere for the module source (example: extra) and 
+copy only source files (from the kernel source or somewhere else) related to the 
+module needed to be build into this new folder
+    3. copy /boot/config-``uname -r file (example: /boot/config-4.8.0-46-generic) 
+into kernel source folder file .config and run make oldconfig. if the module 
+belongs to the kernel source, verify if it has been enabled by calling make 
+menuconfig, by searching for the module and applying letter 'M' if necessary
+    4. kernel source root Makefile has to be altered with exact version 
+components matching the current running one (you may verify with make 
+kernelversion if it matches exactly the uname -r one)
+    5. there is been a strong suggestion to build scripts also before with make 
+scripts
+    6. make prepare and make modules_prepare has to be executed prior to the 
+actual module build
+    7. Module.symvers has to be copied from the target system headers folder 
+corresponding running kernel version /usr/src/linux-headers-``uname -r``/Module
+.symvers (example: /usr/src/linux-headers-3.13.0-117-generic/Module.symvers) 
+into the newly created module source files folder prepared for the module 
+compilation (the one extra in example).
+    8. create new Makefile inside module source compilation folder having 
+following line: obj-y += <module_source_file_name>.o or if the source code is 
+complicated, use the guidance from here
+    9. only then it's the right time to build module with make -C 
+<kernel source path> M=the_module_directory (example: make -C . M=extra/)
+    10. Use command modprobe --dump-modversion <module_name>.ko to verify CRC 
+match between module exporting API and corresponding values in Module.symvers
+    11. verify if kernel.release file content match exactly the one from headers 
+of the current running version. if you'll discover + appended at the end, it 
+means you've been compiling git clonned source and your experimental 
+modifications caused build system to compromise the localversion string by 
+adding + at the end.
+    if only + has been discovered at the tail of kernel.release stored value and 
+it's a mismatch with the exact name of the target running kernel,
+
+the solution would be following:
+
+commit all your changes, force release tag to shift above your modifications 
+with the git tag -a <tag version> -f command. then rebuild your modules from 
+step 8
+
